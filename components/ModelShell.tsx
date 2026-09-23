@@ -57,6 +57,12 @@ export function TopBar({ current }: { current?: ModelMeta["id"] }) {
             );
           })}
           <Link
+            href="/helix"
+            className="rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-sunken"
+          >
+            Helix Lab
+          </Link>
+          <Link
             href="/references"
             className="rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-sunken"
           >
