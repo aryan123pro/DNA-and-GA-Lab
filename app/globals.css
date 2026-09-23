@@ -1,175 +1,154 @@
 @import "tailwindcss";
 
 @theme {
-  --color-void: #04060c;
-  --color-abyss: #070b14;
-  --color-panel: #0b1120;
-  --color-panel2: #0e1626;
-  --color-edge: #1c2740;
-  --color-teal: #2dd4a7;
-  --color-teal-dim: #12806a;
-  --color-indigo: #4f46e5;
-  --color-violet: #7c6cff;
-  --color-magenta: #ff5fd2;
-  --color-rose: #ff5d73;
-  --color-amber: #ffb020;
-  --color-sky: #22b8ff;
-  --color-muted: #7e8ca6;
+  /* ---- neutrals: warm paper + ink ---------------------------------- */
+  --color-paper: #fbfaf7;
+  --color-surface: #ffffff;
+  --color-sunken: #f5f3ee;
+  --color-line: #e7e3da;
+  --color-line-soft: #f0ece4;
+  --color-ink: #16191f;
+  --color-ink-2: #4b5562;
+  --color-ink-3: #7b8592;
 
-  --color-base-a: #38bdf8;
-  --color-base-c: #fbbf24;
-  --color-base-g: #34d399;
-  --color-base-t: #f472b6;
+  /* ---- one signature accent per model ------------------------------ */
+  --color-storage: #0d9488;
+  --color-storage-soft: #e6f5f2;
+  --color-ga: #4f46e5;
+  --color-ga-soft: #eceaff;
+  --color-mixer: #be123c;
+  --color-mixer-soft: #fdeaef;
 
-  --font-mono: var(--font-mono-stack);
+  /* ---- instrument panel (the one dark surface) --------------------- */
+  --color-panel: #101720;
+  --color-panel-2: #18212d;
+  --color-panel-line: #2a3644;
+  --color-panel-ink: #e8eef6;
+  --color-panel-ink-2: #8b99ab;
+
+  /* ---- nucleotides -------------------------------------------------- */
+  --color-base-a: #2563eb;
+  --color-base-c: #ea580c;
+  --color-base-g: #16a34a;
+  --color-base-t: #9333ea;
+
+  --color-warn: #b45309;
+  --color-bad: #dc2626;
+  --color-good: #15803d;
+
+  --font-display: var(--font-display-stack);
   --font-sans: var(--font-sans-stack);
+  --font-mono: var(--font-mono-stack);
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-html,
-body {
-  background: var(--color-void);
-  color: #e6edf7;
+html {
+  scroll-behavior: smooth;
 }
 
 body {
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans-stack);
-  background-image:
-    radial-gradient(900px 600px at 12% -8%, rgba(79, 70, 229, 0.22), transparent 60%),
-    radial-gradient(800px 520px at 92% 4%, rgba(45, 212, 167, 0.14), transparent 62%),
-    radial-gradient(700px 700px at 60% 105%, rgba(255, 95, 210, 0.1), transparent 60%);
-  background-attachment: fixed;
-}
-
-/* faint lab grid */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image:
-    linear-gradient(rgba(140, 170, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(140, 170, 255, 0.045) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse at 50% 0%, #000 20%, transparent 78%);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgba(45, 212, 167, 0.35);
+  background: #cdeee8;
 }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #070b14;
-}
-::-webkit-scrollbar-thumb {
-  background: #1e2b45;
-  border-radius: 8px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #2c3d61;
-}
-
-@utility glass {
-  background: linear-gradient(160deg, rgba(16, 24, 44, 0.86), rgba(8, 12, 22, 0.92));
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(66, 90, 140, 0.32);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 18px 50px -24px rgba(0, 0, 0, 0.9);
+h1,
+h2,
+h3 {
+  font-family: var(--font-display-stack);
+  letter-spacing: -0.015em;
 }
 
 @utility mono {
   font-family: var(--font-mono-stack);
   font-variant-ligatures: none;
+  font-feature-settings: "tnum" 1;
 }
 
-@keyframes scanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(400%);
-  }
+@utility card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
 }
 
-@keyframes pulse-ring {
-  0% {
-    box-shadow: 0 0 0 0 rgba(45, 212, 167, 0.45);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(45, 212, 167, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(45, 212, 167, 0);
-  }
+@utility eyebrow {
+  font-family: var(--font-mono-stack);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-@keyframes flowdash {
-  to {
-    stroke-dashoffset: -400;
-  }
+/* thin, quiet scrollbars */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d9d4c9;
+  border-radius: 9px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c3bdaf;
 }
 
-.pulse-ring {
-  animation: pulse-ring 2.2s cubic-bezier(0.66, 0, 0, 1) infinite;
-}
-
-.flowline {
-  stroke-dasharray: 8 10;
-  animation: flowdash 9s linear infinite;
-}
-
-.glitch {
-  animation: glitchshake 0.42s steps(2, end) 3;
-}
-@keyframes glitchshake {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(-1.5px, 1px);
-  }
-  50% {
-    transform: translate(1.5px, -1px);
-  }
-  75% {
-    transform: translate(-1px, -1.5px);
-  }
-}
-
+/* range inputs */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
+  width: 100%;
   height: 4px;
   border-radius: 999px;
-  background: #1c2740;
+  background: var(--color-line);
   outline: none;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
-  background: var(--color-teal);
-  border: 2px solid #04060c;
-  box-shadow: 0 0 12px rgba(45, 212, 167, 0.8);
+  background: #fff;
+  border: 2px solid currentColor;
+  box-shadow: 0 1px 3px rgba(20, 25, 31, 0.18);
   cursor: pointer;
 }
 input[type="range"]::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 999px;
-  background: var(--color-teal);
-  border: 2px solid #04060c;
+  background: #fff;
+  border: 2px solid currentColor;
   cursor: pointer;
+}
+
+@keyframes dashflow {
+  to {
+    stroke-dashoffset: -220;
+  }
+}
+.flowline {
+  stroke-dasharray: 5 7;
+  animation: dashflow 7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flowline {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
