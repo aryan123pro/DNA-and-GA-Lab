@@ -24,8 +24,6 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "DNA and GA Lab — storage, evolution, and the two combined",
-  description:
-    "Three interactive models for first-year engineering students: how DNA data storage works, how a genetic algorithm works, and what happens when a genetic algorithm designs the DNA storage scheme.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
