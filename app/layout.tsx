@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import AppShell from "@/components/shell/AppShell";
 
 const display = Fraunces({
   variable: "--font-display-stack",
@@ -22,20 +23,17 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The DNA Lab — storage, evolution, and the two combined",
+  title: "DNA and GA Lab — storage, evolution, and the two combined",
   description:
     "Three interactive models for first-year engineering students: how DNA data storage works, how a genetic algorithm works, and what happens when a genetic algorithm designs the DNA storage scheme.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${display.variable} ${sans.variable} ${mono.variable} h-full`}
-    >
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full`}>
       {/* suppressHydrationWarning: browser extensions add attributes to <body>. */}
       <body className="min-h-full" suppressHydrationWarning>
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

@@ -50,6 +50,7 @@ html {
 }
 
 body {
+  overflow-x: hidden;
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans-stack);
@@ -104,6 +105,28 @@ h3 {
   background: #c3bdaf;
 }
 
+/* the fullscreen control panel: the same components, re-inked for a dark console */
+.console {
+  --color-paper: #070b10;
+  --color-surface: #111a24;
+  --color-sunken: #0b1119;
+  --color-line: #233042;
+  --color-line-soft: #1a2432;
+  --color-ink: #e8eef6;
+  --color-ink-2: #b4c0cf;
+  --color-ink-3: #7f8da0;
+  color-scheme: dark;
+}
+.console ::-webkit-scrollbar-thumb {
+  background: #2a3746;
+}
+.console input[type="range"]::-webkit-slider-thumb {
+  background: #0b1119;
+}
+.console input[type="range"]::-moz-range-thumb {
+  background: #0b1119;
+}
+
 /* range inputs */
 input[type="range"] {
   -webkit-appearance: none;
@@ -150,5 +173,41 @@ input[type="range"]::-moz-range-thumb {
   }
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* ---- home page motion -------------------------------------------------- */
+@keyframes drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.drift {
+  animation: drift 40s linear infinite;
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: marquee 60s linear infinite;
+}
+.marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin-slow {
+  animation: spin-slow 14s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drift,
+  .marquee,
+  .spin-slow {
+    animation: none;
   }
 }
