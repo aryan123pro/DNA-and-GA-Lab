@@ -43,6 +43,9 @@ export interface View {
   yaw: number;
   pitch: number;
   zoom: number;
+  /** screen-space offset, in pixels, for panning around a zoomed-in molecule */
+  panX?: number;
+  panY?: number;
   /** the molecule's own rotation about its axis */
   spin: number;
 }
@@ -268,8 +271,8 @@ export function drawHelix(
   const shakeX = mem.shake * Math.sin(wall * 70);
   const shakeY = mem.shake * Math.cos(wall * 55);
   mem.shake = Math.max(0, mem.shake - dtWall * 18);
-  const ox = W / 2 + shakeX;
-  const oy = H * 0.47 + shakeY;
+  const ox = W / 2 + shakeX + (view.panX ?? 0);
+  const oy = H * 0.47 + shakeY + (view.panY ?? 0);
 
   const project = (p: V3): Projected => {
     const x1 = p[0] * cy + p[2] * sy;

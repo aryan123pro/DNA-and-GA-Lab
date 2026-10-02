@@ -5,6 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   Bug,
+  LocateFixed,
+  ZoomIn,
+  ZoomOut,
   Maximize2,
   Minimize2,
   Flame,
@@ -38,12 +41,18 @@ import { cx } from "@/components/ui";
 
 const ACCENT = "#0d9488";
 const PRESETS = ["LIFE", "DNA", "HELLO", "CELL"];
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 3.2;
+const ZOOM_STEP = 1.25;
 
 /** The word to start with: ?word= from the address bar (the home page links here with yours). */
 function initialWord() {
   if (typeof window === "undefined") return "LIFE";
   const w = new URLSearchParams(window.location.search).get("word") ?? "";
-  const clean = w.toUpperCase().replace(/[^A-Z !?]/g, "").slice(0, 8);
+  const clean = w
+    .toUpperCase()
+    .replace(/[^A-Z !?]/g, "")
+    .slice(0, 8);
   return clean || "LIFE";
 }
 
@@ -220,6 +229,36 @@ const STATE_STYLE: Record<Snap["sites"][number]["state"], { ring: string; label:
   gone: { ring: "#64748b", label: "being trimmed" },
 };
 
+/** A big, touch-friendly button for the zoom controls. */
+function ZoomButton({
+  label,
+  big,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  big: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className={cx(
+        "flex cursor-pointer items-center justify-center rounded-xl text-slate-100 transition-colors hover:bg-white/10 active:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30",
+        big ? "h-14 w-14" : "h-10 w-10",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 
 export default function HelixStudio() {
@@ -228,7 +267,24 @@ export default function HelixStudio() {
   const [start] = useState(initialWord);
   const helixRef = useRef<Helix>(buildHelix(start));
   const memRef = useRef<RenderMemory | null>(null);
-  const viewRef = useRef<View>({ yaw: -0.22, pitch: 0.22, zoom: 1, spin: 0 });
+  const viewRef = useRef<View>({ yaw: -0.22, pitch: 0.22, zoom: 1, spin: 0, panX: 0, panY: 0 });
+  // where the zoom is heading; the frame loop glides the view towards it
+  const zoomTarget = useRef(1);
+  const [zoomPct, setZoomPct] = useState(100);
+  const zoomTo = useCallback((z: number) => {
+    const next = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+    zoomTarget.current = next;
+    setZoomPct(Math.round(next * 100));
+  }, []);
+  const zoomIn = useCallback(() => zoomTo(zoomTarget.current * ZOOM_STEP), [zoomTo]);
+  const zoomOut = useCallback(() => zoomTo(zoomTarget.current / ZOOM_STEP), [zoomTo]);
+  const resetView = useCallback(() => {
+    viewRef.current.yaw = -0.22;
+    viewRef.current.pitch = 0.22;
+    viewRef.current.panX = 0;
+    viewRef.current.panY = 0;
+    zoomTo(1);
+  }, [zoomTo]);
   const pickRef = useRef<Pick>({ id: null, x: -999, y: -999 });
 
   const [word, setWord] = useState(start);
@@ -365,6 +421,10 @@ export default function HelixStudio() {
         // the molecule turns slowly — but holds still while you aim at a base
         if (!reduced && o.hover === null) viewRef.current.spin += dt * 0.16;
       }
+      {
+        const v = viewRef.current;
+        v.zoom += (zoomTarget.current - v.zoom) * (reduced ? 1 : Math.min(1, dt * 10));
+      }
       if (!visible) return;
       drawHelix(
         ctx,
@@ -407,11 +467,12 @@ export default function HelixStudio() {
   }, []);
 
   /* ---- pointer: aim, click, orbit, zoom -------------------------------- */
-  const drag = useRef<{ x: number; y: number; moved: boolean; down: boolean }>({
+  const drag = useRef<{ x: number; y: number; moved: boolean; down: boolean; pan: boolean }>({
     x: 0,
     y: 0,
     moved: false,
     down: false,
+    pan: false,
   });
 
   useEffect(() => {
@@ -419,12 +480,38 @@ export default function HelixStudio() {
     if (!canvas) return;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
-      const v = viewRef.current;
-      v.zoom = Math.max(0.6, Math.min(3.2, v.zoom * Math.exp(-e.deltaY * 0.0015)));
+      zoomTo(zoomTarget.current * Math.exp(-e.deltaY * 0.0015));
     };
     canvas.addEventListener("wheel", wheel, { passive: false });
     return () => canvas.removeEventListener("wheel", wheel);
-  }, []);
+  }, [zoomTo]);
+
+  // + and − zoom from the keyboard, when you are not typing
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable))
+        return;
+      if (e.metaKey || e.ctrlKey) return;
+      if (e.key === "+" || e.key === "=") zoomTo(zoomTarget.current * ZOOM_STEP);
+      if (e.key === "-" || e.key === "_") zoomTo(zoomTarget.current / ZOOM_STEP);
+      if (e.key === "0") resetView();
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [zoomTo, resetView]);
+
+  /* ---- two fingers: pinch to zoom (touch boards have no scroll wheel) ----- */
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; zoom: number; mx: number; my: number } | null>(null);
+  const spread = () => {
+    const [a, b] = [...touches.current.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+  const middle = () => {
+    const [a, b] = [...touches.current.values()];
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  };
 
   const act = useCallback(
     (id: number) => {
@@ -442,13 +529,44 @@ export default function HelixStudio() {
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    drag.current = { x: e.clientX, y: e.clientY, moved: false, down: true };
-    e.currentTarget.setPointerCapture(e.pointerId);
+    touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* some touch boards refuse capture; the gesture still works without it */
+    }
+    if (touches.current.size === 2) {
+      // a second finger turns the gesture into a pinch, never a click
+      const m = middle();
+      pinch.current = { dist: spread(), zoom: zoomTarget.current, mx: m.x, my: m.y };
+      drag.current.moved = true;
+      return;
+    }
+    drag.current = {
+      x: e.clientX,
+      y: e.clientY,
+      moved: false,
+      down: true,
+      pan: e.button === 2 || e.shiftKey,
+    };
   };
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
     pickRef.current.x = e.clientX - r.left;
     pickRef.current.y = e.clientY - r.top;
+    if (touches.current.has(e.pointerId))
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current && touches.current.size >= 2) {
+      zoomTo((pinch.current.zoom * spread()) / Math.max(1, pinch.current.dist));
+      // two fingers sliding together move the view, as on any touch screen
+      const m = middle();
+      const v = viewRef.current;
+      v.panX = (v.panX ?? 0) + (m.x - pinch.current.mx);
+      v.panY = (v.panY ?? 0) + (m.y - pinch.current.my);
+      pinch.current.mx = m.x;
+      pinch.current.my = m.y;
+      return;
+    }
     const d = drag.current;
     if (!d.down) return;
     const dx = e.clientX - d.x;
@@ -456,16 +574,23 @@ export default function HelixStudio() {
     if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
     if (d.moved) {
       const v = viewRef.current;
-      v.yaw = Math.max(-1.2, Math.min(1.2, v.yaw + dx * 0.006));
-      v.pitch = Math.max(-0.9, Math.min(0.9, v.pitch + dy * 0.004));
+      if (d.pan) {
+        v.panX = (v.panX ?? 0) + dx;
+        v.panY = (v.panY ?? 0) + dy;
+      } else {
+        v.yaw = Math.max(-1.2, Math.min(1.2, v.yaw + dx * 0.006));
+        v.pitch = Math.max(-0.9, Math.min(0.9, v.pitch + dy * 0.004));
+      }
       d.x = e.clientX;
       d.y = e.clientY;
     }
   };
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    touches.current.delete(e.pointerId);
+    if (touches.current.size < 2) pinch.current = null;
     const d = drag.current;
     if (d.down && !d.moved && hover !== null) act(hover);
-    d.down = false;
+    if (touches.current.size === 0) d.down = false;
   };
   const onPointerLeave = () => {
     pickRef.current.x = -999;
@@ -613,6 +738,8 @@ export default function HelixStudio() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerLeave}
+          onPointerCancel={onPointerUp}
+          onContextMenu={(e) => e.preventDefault()}
         />
 
         {/* the word, read live */}
@@ -762,11 +889,53 @@ export default function HelixStudio() {
                 exit={{ opacity: 0 }}
                 className="mx-auto max-w-[640px] rounded-xl border border-white/10 bg-[#081019]/80 px-4 py-2.5 text-center text-[12.5px] text-slate-400 backdrop-blur"
               >
-                Pick a kind of damage above, then click a base on the molecule. Drag to turn it,
-                scroll to zoom.
+                Pick a kind of damage above, then click a base on the molecule. Drag to turn it;
+                zoom with the buttons on the left, or pinch; two fingers (or right-drag) move it
+                around.
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+
+        {/* zoom: touch boards have no scroll wheel, so the controls are buttons */}
+        <div
+          className={cx(
+            "absolute top-1/2 left-3 z-10 flex -translate-y-1/2 flex-col items-center gap-1 rounded-2xl border border-white/10 bg-[#081019]/80 p-1 backdrop-blur",
+            full && "left-4 gap-1.5 p-1.5",
+          )}
+        >
+          <ZoomButton
+            label="Zoom in (+)"
+            big={full}
+            onClick={zoomIn}
+            disabled={zoomPct >= ZOOM_MAX * 100}
+          >
+            <ZoomIn size={full ? 26 : 19} />
+          </ZoomButton>
+          <span
+            className={cx("mono text-center text-slate-300", full ? "text-[12px]" : "text-[10px]")}
+          >
+            {zoomPct}%
+          </span>
+          <ZoomButton
+            label="Zoom out (−)"
+            big={full}
+            onClick={zoomOut}
+            disabled={zoomPct <= ZOOM_MIN * 100}
+          >
+            <ZoomOut size={full ? 26 : 19} />
+          </ZoomButton>
+          <button
+            onClick={resetView}
+            title="Reset the view (0)"
+            aria-label="Reset the view"
+            className={cx(
+              "mt-0.5 flex cursor-pointer items-center justify-center rounded-xl border-t border-white/10 text-slate-300 hover:bg-white/10 active:bg-white/20",
+              full ? "h-12 w-14" : "h-9 w-10",
+            )}
+          >
+            <LocateFixed size={full ? 22 : 16} />
+          </button>
         </div>
 
         {paused && (
