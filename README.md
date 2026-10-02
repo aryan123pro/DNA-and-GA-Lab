@@ -19,8 +19,8 @@ presentation *DNA based storage systems and genetic algorithms*.
 | **Chapter 2 · Genetic Algorithm** (`/genetic`) | Watch random guesses evolve into the right answer with three rules: keep the best, mix two parents, mutate a little. |
 | **Chapter 3 · The Mixer** (`/mixer`) | A genetic algorithm designs the DNA storage scheme itself, by actually using each candidate on your message. |
 | **Helix Lab** (`/helix`) | A 3-D double helix with your word written into it. Damage it with oxygen, UV light, copying typos or radiation, then watch named enzymes repair it live — base excision, mismatch, nucleotide excision, homologous recombination and end joining. |
-| **Landing Lab** (`/landing`) | Try to land a Falcon-9-style booster yourself, then watch a genetic algorithm learn the hoverslam by crashing forty rockets at a time. |
 | **Random Access Lab** (`/random-access`) | A whole book — *Alice's Adventures in Wonderland* — written into 7,208 DNA strands in one tube. Pick a chapter, add its primers, run PCR, sequence and decode just that chapter, the way Organick et al. (2018) did it for real. Upload your own `.txt` too. |
+| **Landing Lab** (`/landing`) | Try to land a Falcon-9-style booster yourself, then watch a genetic algorithm learn the hoverslam by crashing forty rockets at a time. |
 | **Sources** (`/references`) | The website's reading list, **the presentation** (readable on a phone), its key papers and all 27 references, and **the team**. |
 
 Press **⌘K** (or **Ctrl K**, or **/**) anywhere to jump to any page or step. In a chapter,

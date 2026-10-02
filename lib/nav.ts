@@ -33,6 +33,15 @@ export const LABS: Destination[] = [
     kind: "lab",
   },
   {
+    id: "archive",
+    href: "/random-access",
+    name: "Random Access Lab",
+    hint: "A whole book in a tube — pull out one chapter",
+    accent: "#7c3aed",
+    soft: "#f3edff",
+    kind: "lab",
+  },
+  {
     id: "landing",
     href: "/landing",
     name: "Landing Lab",
@@ -41,15 +50,6 @@ export const LABS: Destination[] = [
     soft: "#fdf0e7",
     kind: "lab",
     steps: ["Land it yourself", "Evolve", "Memoriser vs pilot", "What actually flies"],
-  },
-  {
-    id: "archive",
-    href: "/random-access",
-    name: "Random Access Lab",
-    hint: "A whole book in a tube — pull out one chapter",
-    accent: "#7c3aed",
-    soft: "#f3edff",
-    kind: "lab",
   },
 ];
 

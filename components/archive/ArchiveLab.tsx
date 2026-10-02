@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BookOpen,
   Dna,
+  Maximize2,
+  Minimize2,
   FlaskConical,
   Play,
   RotateCcw,
@@ -290,6 +292,41 @@ export default function ArchiveLab() {
   const [result, setResult] = useState<Decoded | null>(null);
   const [inspect, setInspect] = useState(1);
   const [runKey, setRunKey] = useState(0);
+
+  /* ---- full screen: the random-access bench fills the screen ------------- */
+  // only layout classes change, so the tube's canvas keeps running
+  const benchRef = useRef<HTMLElement>(null);
+  const [full, setFull] = useState(false);
+  const toggleFull = useCallback(() => {
+    if (full) {
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      setFull(false);
+    } else {
+      benchRef.current?.requestFullscreen?.().catch(() => {});
+      setFull(true);
+    }
+  }, [full]);
+  useEffect(() => {
+    const sync = () => {
+      if (!document.fullscreenElement) setFull(false);
+    };
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  useEffect(() => {
+    if (!full) return;
+    const body = document.body.style;
+    const prev = body.overflow;
+    body.overflow = "hidden";
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.fullscreenElement) setFull(false);
+    };
+    window.addEventListener("keydown", key);
+    return () => {
+      body.overflow = prev;
+      window.removeEventListener("keydown", key);
+    };
+  }, [full]);
   const fileInput = useRef<HTMLInputElement>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -626,15 +663,53 @@ export default function ArchiveLab() {
       </section>
 
       {/* ======================================================= random access == */}
-      <section className="overflow-hidden rounded-3xl border border-[#2e2a5a] bg-[#0f0d24] text-slate-200">
-        <div className="border-b border-white/10 p-5 sm:p-6">
-          <span className="mono text-[11px] font-semibold tracking-[0.14em] text-violet-300 uppercase">
-            3 · Random access
-          </span>
-          <h2 className="mt-1 text-[24px] leading-tight font-semibold text-white sm:text-[28px]">
-            Pull one chapter out of the tube
-          </h2>
-          <p className="mt-1 max-w-3xl text-[13.5px] leading-relaxed text-slate-400">
+      <section
+        ref={benchRef}
+        className={cx(
+          "overflow-hidden bg-[#0f0d24] text-slate-200",
+          full
+            ? "fixed inset-0 z-50 flex h-[100dvh] w-screen flex-col"
+            : "rounded-3xl border border-[#2e2a5a]",
+        )}
+      >
+        <div
+          className={cx(
+            "flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-white/10",
+            full ? "px-4 py-3" : "p-5 sm:p-6",
+          )}
+        >
+          <div className="min-w-0">
+            <span className="mono text-[11px] font-semibold tracking-[0.14em] text-violet-300 uppercase">
+              3 · Random access{full && book ? ` · ${book.title}` : ""}
+            </span>
+            <h2
+              className={cx(
+                "mt-1 leading-tight font-semibold text-white",
+                full ? "text-[18px]" : "text-[24px] sm:text-[28px]",
+              )}
+            >
+              Pull one chapter out of the tube
+            </h2>
+          </div>
+          <button
+            onClick={toggleFull}
+            title={full ? "Leave full screen (Esc)" : "Full screen"}
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-violet-400/40 px-3 py-2 text-[12.5px] text-violet-200 hover:bg-violet-500/15"
+          >
+            {full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {full ? "Exit" : "Full screen"}
+            {full && (
+              <kbd className="mono rounded border border-white/15 px-1 text-[9.5px] text-slate-400">
+                esc
+              </kbd>
+            )}
+          </button>
+          <p
+            className={cx(
+              "max-w-3xl text-[13.5px] leading-relaxed text-slate-400",
+              full ? "hidden" : "w-full",
+            )}
+          >
             Sequencing the whole tube to read one chapter would be like reading every book in a
             library to find one page. Instead, add only that chapter&apos;s primers and run PCR: its
             strands copy themselves, cycle after cycle, until they are almost all that is left —
@@ -650,10 +725,24 @@ export default function ArchiveLab() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div
+            className={cx(
+              "grid gap-0",
+              full
+                ? "min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden"
+                : "lg:grid-cols-[minmax(0,1fr)_340px]",
+            )}
+          >
             {/* ---- the tube and the pipeline -------------------------------- */}
-            <div className="border-white/10 p-4 sm:p-5 lg:border-r">
-              <div className="h-[300px] sm:h-[340px]">
+            <div
+              className={cx(
+                "border-white/10 p-4 sm:p-5 lg:border-r",
+                full && "flex min-h-0 flex-col",
+              )}
+            >
+              <div
+                className={full ? "h-[45vh] min-h-0 lg:h-auto lg:flex-1" : "h-[300px] sm:h-[340px]"}
+              >
                 <Tube
                   n={n}
                   run={runKey}
@@ -837,7 +926,7 @@ export default function ArchiveLab() {
             </div>
 
             {/* ---- controls ---------------------------------------------------- */}
-            <div className="space-y-5 p-4 sm:p-5">
+            <div className={cx("space-y-5 p-4 sm:p-5", full && "min-h-0 lg:overflow-y-auto")}>
               <label className="block">
                 <span className="mono mb-1.5 block text-[10.5px] tracking-[0.14em] text-slate-400 uppercase">
                   Chapter to retrieve
@@ -955,6 +1044,33 @@ export default function ArchiveLab() {
                     : ""}
                 </div>
               </div>
+              {full && result && file && (
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="mono text-[10px] tracking-[0.14em] text-slate-400 uppercase">
+                    What came back
+                  </div>
+                  <div className="mt-1 text-[14px] font-semibold text-white">
+                    Chapter {file.number}: {result.titleFromDna || file.title}
+                  </div>
+                  <div className="mono mt-1 text-[11px] text-slate-400">
+                    {(result.accuracy * 100).toFixed(result.accuracy > 0.999 ? 2 : 1)}% identical ·{" "}
+                    {result.recovered}/{result.pieces.length} pieces · {fmt(result.corrected)}{" "}
+                    errors outvoted
+                  </div>
+                  <div className="mt-2 max-h-[38vh] overflow-y-auto rounded-lg bg-black/25 p-3">
+                    <p className="font-display text-[13.5px] leading-[1.7] whitespace-pre-wrap text-slate-200">
+                      {result.text.split("▒").map((part, i, arr) => (
+                        <span key={i}>
+                          {part}
+                          {i < arr.length - 1 && (
+                            <span className="rounded-sm bg-amber-400/40 text-amber-200">▒</span>
+                          )}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
