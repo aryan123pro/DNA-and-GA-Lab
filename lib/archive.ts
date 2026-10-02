@@ -551,7 +551,12 @@ export function bookFromText(name: string, raw: string): Book {
   if (end > 0) text = text.slice(0, end);
   text = text.trim();
 
-  const heads = [...text.matchAll(/^\s*(CHAPTER|Chapter)\s+([IVXLCDM]+|\d+)\.?[^\n]*$/gm)];
+  const found = [...text.matchAll(/^\s*(CHAPTER|Chapter)\s+([IVXLCDM]+|\d+)\.?[^\n]*$/gm)];
+  // a table of contents lists every chapter once before the real headings do:
+  // when a number comes up again later, the earlier line was only the contents
+  const heads = found.filter(
+    (h, i) => !found.slice(i + 1).some((later) => later[2].toUpperCase() === h[2].toUpperCase()),
+  );
   let chapters: Chapter[] = [];
   if (heads.length >= 2) {
     heads.forEach((h, i) => {
