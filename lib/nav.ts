@@ -42,6 +42,15 @@ export const LABS: Destination[] = [
     kind: "lab",
     steps: ["Land it yourself", "Evolve", "Memoriser vs pilot", "What actually flies"],
   },
+  {
+    id: "archive",
+    href: "/random-access",
+    name: "Random Access Lab",
+    hint: "A whole book in a tube — pull out one chapter",
+    accent: "#7c3aed",
+    soft: "#f3edff",
+    kind: "lab",
+  },
 ];
 
 export const DESTINATIONS: Destination[] = [

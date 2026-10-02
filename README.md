@@ -20,6 +20,7 @@ presentation *DNA based storage systems and genetic algorithms*.
 | **Chapter 3 · The Mixer** (`/mixer`) | A genetic algorithm designs the DNA storage scheme itself, by actually using each candidate on your message. |
 | **Helix Lab** (`/helix`) | A 3-D double helix with your word written into it. Damage it with oxygen, UV light, copying typos or radiation, then watch named enzymes repair it live — base excision, mismatch, nucleotide excision, homologous recombination and end joining. |
 | **Landing Lab** (`/landing`) | Try to land a Falcon-9-style booster yourself, then watch a genetic algorithm learn the hoverslam by crashing forty rockets at a time. |
+| **Random Access Lab** (`/random-access`) | A whole book — *Alice's Adventures in Wonderland* — written into 7,208 DNA strands in one tube. Pick a chapter, add its primers, run PCR, sequence and decode just that chapter, the way Organick et al. (2018) did it for real. Upload your own `.txt` too. |
 | **Sources** (`/references`) | The website's reading list, **the presentation** (readable on a phone), its key papers and all 27 references, and **the team**. |
 
 Press **⌘K** (or **Ctrl K**, or **/**) anywhere to jump to any page or step. In a chapter,
@@ -88,15 +89,18 @@ components/
   ModelShell.tsx        chapter layout: opener, step sequencer, next-step card
   helix/                Helix Lab: the 3-D renderer and the interactive studio
   rocket/               Landing Lab: scene renderer, the three labs, fullscreen console
+  archive/              Random Access Lab: the tube, strand anatomy, the retrieval pipeline
   pdf/PdfViewer.tsx     mobile-friendly PDF viewer (used for the presentation)
   team/TeamTab.tsx      the team page
 lib/
   dna.ts, repair.ts     text ↔ bits ↔ bases, damage and error correction (chapter 1)
   helix.ts              DNA damage and the five repair pathways, step by step
+  archive.ts            primer design, strand layout, PCR, sequencing and consensus decoding
   rocket/               booster physics, the evolvable pilots, the genetic algorithm
   nav.ts                every destination, shared step state, visited tracking
   deck.ts, team.ts      the presentation's references and the team
 public/
+  books/                the public-domain book used by the Random Access Lab
   presentation/         the presentation PDF
   papers/               openly licensed papers served by the site
   team/                 team photos

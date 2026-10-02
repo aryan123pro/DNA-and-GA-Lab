@@ -71,6 +71,7 @@ export default function Home() {
   const [m1, m2, m3] = MODELS;
   const helix = LABS.find((l) => l.id === "helix")!;
   const landing = LABS.find((l) => l.id === "landing")!;
+  const archive = LABS.find((l) => l.id === "archive")!;
   const helixWord =
     name
       .toUpperCase()
@@ -137,7 +138,7 @@ export default function Home() {
             className="mono inline-flex items-center gap-2 rounded-full border border-line bg-surface/80 px-3 py-1 text-[11px] text-ink-2 backdrop-blur"
           >
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-storage" />
-            An interactive lab · 3 chapters · 2 playgrounds
+            An interactive lab · 3 chapters · 3 playgrounds
           </motion.div>
 
           <h1 className="mt-6 text-[44px] leading-[0.98] font-semibold tracking-tight text-ink sm:text-[68px] lg:text-[84px]">
@@ -512,6 +513,72 @@ export default function Home() {
                     size={14}
                     className="transition-transform group-hover:translate-x-0.5"
                   />
+                </span>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* ---- the archive: a whole book, one chapter at a time ---------- */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.45 }}
+            className="lg:col-span-6"
+          >
+            <Link
+              href={archive.href}
+              className="group relative grid overflow-hidden rounded-3xl border border-[#2e2a5a] bg-[#0f0d24] p-6 text-slate-200 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-8"
+            >
+              <div>
+                <span className="mono rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] text-violet-300">
+                  PLAYGROUND · NEW
+                </span>
+                <div className="mt-3 flex items-center gap-2">
+                  <h3 className="font-display text-[26px] leading-tight font-semibold text-white sm:text-[32px]">
+                    {archive.name}
+                  </h3>
+                  {visited.includes(archive.id) && <Check size={16} className="text-violet-300" />}
+                </div>
+                <p className="mt-2 max-w-md text-[14px] leading-[1.65] text-slate-400">
+                  A whole book written into DNA — seven thousand strands in one tube. Pick a
+                  chapter, add its primers, run PCR, and read just that chapter back out, the way
+                  real DNA archives find one file among many.
+                </p>
+                <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-500 px-4 py-2.5 text-[13.5px] font-semibold text-white transition-transform group-hover:translate-x-1">
+                  Open the archive <ArrowRight size={15} />
+                </span>
+              </div>
+              {/* a tube of strands, one colour per chapter, one chapter lit */}
+              <div className="relative mt-6 h-[170px] overflow-hidden rounded-2xl bg-[linear-gradient(180deg,#1e1b4b,#0b0a1f)] md:mt-0 md:h-auto">
+                <svg viewBox="0 0 320 170" className="h-full w-full" aria-hidden>
+                  {Array.from({ length: 140 }, (_, i) => {
+                    const r = (k: number) => {
+                      const x = Math.sin(i * 91.7 + k * 13.3) * 43758.5453;
+                      return x - Math.floor(x);
+                    };
+                    const ch = Math.floor(r(1) * 12);
+                    const lit = ch === 6;
+                    const x = 10 + r(2) * 300;
+                    const y = 10 + r(3) * 150;
+                    const a = r(4) * Math.PI;
+                    return (
+                      <line
+                        key={i}
+                        x1={x - Math.cos(a) * 6}
+                        y1={y - Math.sin(a) * 6}
+                        x2={x + Math.cos(a) * 6}
+                        y2={y + Math.sin(a) * 6}
+                        stroke={`hsl(${Math.round((ch / 12) * 330 + 260) % 360} 70% ${lit ? 68 : 55}%)`}
+                        strokeWidth={lit ? 2.4 : 1.4}
+                        strokeLinecap="round"
+                        opacity={lit ? 1 : 0.35}
+                      />
+                    );
+                  })}
+                </svg>
+                <span className="mono absolute bottom-3 left-3 rounded-md bg-black/40 px-2 py-1 text-[10px] text-violet-200 backdrop-blur">
+                  chapter 7, lit up by its primers
                 </span>
               </div>
             </Link>
