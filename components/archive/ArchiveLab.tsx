@@ -30,6 +30,7 @@ import {
   writeArchive,
 } from "@/lib/archive";
 import { cx } from "@/components/ui";
+import { PdfBookError, bookFromPdf } from "@/lib/pdfBook";
 
 const ACCENT = "#7c3aed";
 const BASE_HEX: Record<string, string> = { A: "#2563eb", C: "#ea580c", G: "#16a34a", T: "#9333ea" };
@@ -373,10 +374,30 @@ export default function ArchiveLab() {
     [resetRun],
   );
 
+  const [reading, setReading] = useState<{ page: number; pages: number } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const onUpload = async (f: File | undefined) => {
     if (!f) return;
-    const text = await f.text();
-    loadBook(bookFromText(f.name, text));
+    setUploadError(null);
+    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+    try {
+      if (isPdf) {
+        setReading({ page: 0, pages: 0 });
+        loadBook(await bookFromPdf(f, (page, pages) => setReading({ page, pages })));
+      } else {
+        loadBook(bookFromText(f.name, await f.text()));
+      }
+    } catch (e) {
+      setUploadError(
+        e instanceof PdfBookError
+          ? e.message
+          : "That file could not be read. Try a .txt or a .pdf.",
+      );
+    } finally {
+      setReading(null);
+      if (fileInput.current) fileInput.current.value = "";
+    }
   };
 
   /* ---- write the whole book into DNA ---------------------------------------- */
@@ -493,17 +514,18 @@ export default function ArchiveLab() {
             <input
               ref={fileInput}
               type="file"
-              accept=".txt,text/plain"
+              accept=".txt,.pdf,text/plain,application/pdf"
               className="hidden"
               onChange={(e) => onUpload(e.target.files?.[0])}
             />
             <button
               onClick={() => fileInput.current?.click()}
-              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-medium text-ink-2 hover:bg-sunken"
+              disabled={reading !== null}
+              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-medium text-ink-2 hover:bg-sunken disabled:opacity-50"
             >
-              <Upload size={14} /> Use your own .txt
+              <Upload size={14} /> Use your own .txt or .pdf
             </button>
-            {book?.id === "upload" && (
+            {book?.id.startsWith("upload") && (
               <button
                 onClick={() =>
                   fetch("/books/alice.json")
@@ -518,8 +540,35 @@ export default function ArchiveLab() {
           </div>
         </div>
 
+        {reading && (
+          <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+            <div className="flex justify-between text-[13px] text-violet-900">
+              <span>Reading the PDF…</span>
+              <span className="mono">
+                {reading.pages ? `page ${reading.page} of ${reading.pages}` : "opening"}
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-violet-100">
+              <div
+                className="h-full rounded-full bg-violet-500 transition-[width]"
+                style={{ width: `${reading.pages ? (reading.page / reading.pages) * 100 : 5}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {uploadError && (
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">
+            {uploadError}
+          </p>
+        )}
+        {book?.note && (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+            {book.note}
+          </p>
+        )}
+
         {book && (
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid max-h-[340px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
             {book.chapters.map((c, i) => (
               <div
                 key={i}

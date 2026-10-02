@@ -194,6 +194,8 @@ export interface Book {
   source: string;
   url?: string;
   chapters: Chapter[];
+  /** anything the reader should know about how the book was cut down to fit */
+  note?: string;
 }
 
 export interface FileEntry {
@@ -518,9 +520,11 @@ export function decode(archive: Archive, file: number, reads: Read[]): Decoded {
     }
   }
 
-  const original = archive.book.chapters[file].text;
+  // compared byte by byte, so a lost piece in text full of é or ° does not
+  // throw every later character out of line
+  const original = new TextEncoder().encode(archive.book.chapters[file].text);
   let same = 0;
-  for (let i = 0; i < original.length; i++) if (text[i] === original[i]) same++;
+  for (let i = 0; i < original.length; i++) if (!lost[i] && bytes[i] === original[i]) same++;
 
   return {
     text,
@@ -543,32 +547,48 @@ export function decode(archive: Archive, file: number, reads: Read[]): Decoded {
  * Turn a plain-text file into chapters: split on "CHAPTER …" headings when
  * there are any, otherwise into equal parts.
  */
-export function bookFromText(name: string, raw: string): Book {
-  let text = raw.replace(/\r\n/g, "\n");
-  const start = text.match(/\*\*\* ?START OF (THE|THIS) PROJECT GUTENBERG[^\n]*\n/i);
-  if (start?.index !== undefined) text = text.slice(start.index + start[0].length);
-  const end = text.search(/\*\*\* ?END OF (THE|THIS) PROJECT GUTENBERG/i);
-  if (end > 0) text = text.slice(0, end);
-  text = text.trim();
+/** what one tube is allowed to hold here, so a browser stays responsive */
+export const LIMITS = {
+  /** the address has 8 bits of chapter number; primer design gets slow past this */
+  chapters: 120,
+  /** 16 bits of piece number: 65,535 pieces of 20 bytes, with room to spare */
+  chapterBytes: 1_200_000,
+  /** about 150,000 strands */
+  bookBytes: 3_000_000,
+};
 
-  const found = [...text.matchAll(/^\s*(CHAPTER|Chapter)\s+([IVXLCDM]+|\d+)\.?[^\n]*$/gm)];
-  // a table of contents lists every chapter once before the real headings do:
-  // when a number comes up again later, the earlier line was only the contents
+const byteLength = (t: string) => new TextEncoder().encode(t).length;
+
+/**
+ * Split text into chapters on "Chapter …" headings when there are any,
+ * otherwise into equal parts. A table of contents lists every heading before
+ * the real ones, so a number that turns up again later is skipped the first
+ * time.
+ */
+export function splitChapters(text: string): Chapter[] {
+  const found = [...text.matchAll(/^[ \t]*(CHAPTER|Chapter)[ \t]+([IVXLCDM]+|\d+)\b\.?[^\n]*$/gm)];
   const heads = found.filter(
     (h, i) => !found.slice(i + 1).some((later) => later[2].toUpperCase() === h[2].toUpperCase()),
   );
-  let chapters: Chapter[] = [];
+  const chapters: Chapter[] = [];
   if (heads.length >= 2) {
     heads.forEach((h, i) => {
       const from = h.index! + h[0].length;
       const to = i + 1 < heads.length ? heads[i + 1].index! : text.length;
       const body = text.slice(from, to).trim();
+      // "Chapter 3  Thermodynamics" carries its title on the same line
+      const line = h[0].trim();
+      const inline = line
+        .slice(line.indexOf(h[2], line.search(/[ \t]/)) + h[2].length)
+        .replace(/^[ \t]*[.:—–-]?[ \t]*/, "")
+        .trim();
       const firstLine = body.split("\n")[0].trim();
-      const titled = firstLine.length > 0 && firstLine.length < 60 && !/[.!?]$/.test(firstLine);
+      const nextIsTitle =
+        !inline && firstLine.length > 0 && firstLine.length < 60 && !/[.,;]$/.test(firstLine);
       chapters.push({
         number: h[2],
-        title: titled ? firstLine : `Chapter ${h[2]}`,
-        text: titled ? body.slice(firstLine.length).trim() : body,
+        title: (inline || (nextIsTitle ? firstLine : `Chapter ${h[2]}`)).slice(0, 80),
+        text: nextIsTitle ? body.slice(firstLine.length).trim() : body,
       });
     });
   } else {
@@ -581,12 +601,56 @@ export function bookFromText(name: string, raw: string): Book {
         text: text.slice(i * size, (i + 1) * size),
       });
   }
-  chapters = chapters.filter((c) => c.text.length > 0).slice(0, 60);
-  return {
+  return chapters.filter((c) => c.text.trim().length > 0);
+}
+
+/**
+ * Make a book fit one tube: split any chapter too long for its address, then
+ * keep chapters until the book reaches the size limit.
+ */
+export function fitBook(book: Book): Book {
+  const pieces: Chapter[] = [];
+  for (const c of book.chapters) {
+    const bytes = byteLength(c.text);
+    if (bytes <= LIMITS.chapterBytes) {
+      pieces.push(c);
+      continue;
+    }
+    const n = Math.ceil(bytes / LIMITS.chapterBytes);
+    const size = Math.ceil(c.text.length / n);
+    for (let k = 0; k < n; k++)
+      pieces.push({
+        number: `${c.number}.${k + 1}`,
+        title: `${c.title} (part ${k + 1})`,
+        text: c.text.slice(k * size, (k + 1) * size),
+      });
+  }
+  const kept: Chapter[] = [];
+  let total = 0;
+  for (const c of pieces) {
+    const b = byteLength(c.text);
+    if (kept.length >= LIMITS.chapters || (kept.length > 0 && total + b > LIMITS.bookBytes)) break;
+    kept.push(c);
+    total += b;
+  }
+  const note =
+    kept.length < pieces.length
+      ? `Only the first ${kept.length} of ${pieces.length} sections fit in one tube here (about ${(LIMITS.bookBytes / 1e6).toFixed(0)} MB of text).`
+      : book.note;
+  return { ...book, chapters: kept, note };
+}
+
+export function bookFromText(name: string, raw: string): Book {
+  let text = raw.replace(/\r\n/g, "\n");
+  const start = text.match(/\*\*\* ?START OF (THE|THIS) PROJECT GUTENBERG[^\n]*\n/i);
+  if (start?.index !== undefined) text = text.slice(start.index + start[0].length);
+  const end = text.search(/\*\*\* ?END OF (THE|THIS) PROJECT GUTENBERG/i);
+  if (end > 0) text = text.slice(0, end);
+  return fitBook({
     id: "upload",
     title: name.replace(/\.txt$/i, ""),
     author: "your file",
-    source: "uploaded",
-    chapters,
-  };
+    source: "uploaded text file",
+    chapters: splitChapters(text.trim()),
+  });
 }

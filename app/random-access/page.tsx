@@ -46,6 +46,7 @@ export default function RandomAccessPage() {
             A whole book, written into DNA and poured into a single tube — seven thousand strands,
             all mixed together. Now get chapter seven back without reading the rest. This is how
             real DNA archives find one file among many: with nothing but a pair of primers and PCR.
+            Bring your own book too — a text file or any PDF, read right here in your browser.
           </p>
         </div>
       </div>

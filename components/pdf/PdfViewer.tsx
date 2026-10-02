@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { cx } from "@/components/ui";
+import { loadPdfjs } from "@/lib/pdfjs";
 
 /**
  * A PDF viewer that works on a phone. Browsers' built-in PDF embedding is
@@ -26,20 +27,6 @@ import { cx } from "@/components/ui";
  */
 
 type Mode = "slides" | "scroll";
-
-let pdfjsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
-function loadPdfjs() {
-  if (!pdfjsPromise) {
-    pdfjsPromise = import("pdfjs-dist").then((lib) => {
-      lib.GlobalWorkerOptions.workerSrc = new URL(
-        "pdfjs-dist/build/pdf.worker.min.mjs",
-        import.meta.url,
-      ).toString();
-      return lib;
-    });
-  }
-  return pdfjsPromise;
-}
 
 /* -------------------------------------------------------------------------- */
 
