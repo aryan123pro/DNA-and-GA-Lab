@@ -162,6 +162,22 @@ export default function EvolveLab() {
     [evo.population],
   );
   const [pip, setPip] = useState<"small" | "large" | "hidden">("small");
+  /** full screen can show the whole fleet, or just the generation's best booster */
+  const [view, setView] = useState<"fleet" | "best">("fleet");
+  const best = useMemo(() => rockets.filter((r) => r.hero), [rockets]);
+
+  // B flips between the two views while the full screen is open
+  useEffect(() => {
+    if (!stage.open) return;
+    const key = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT"))
+        return;
+      if (e.key === "b" || e.key === "B") setView((v) => (v === "best" ? "fleet" : "best"));
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [stage.open]);
   const heroMetrics = hero?.flights[0]?.metrics;
 
   const chart = useMemo(
@@ -203,9 +219,13 @@ export default function EvolveLab() {
     </div>
   );
 
-  const scene = (h: number | string, inset?: { top?: number; bottom?: number }) => (
+  const scene = (
+    h: number | string,
+    inset?: { top?: number; bottom?: number },
+    only?: SceneRocket[],
+  ) => (
     <LaunchScene
-      rockets={rockets}
+      rockets={only ?? rockets}
       t={t}
       world={opts.world}
       wind={opts.wind}
@@ -446,7 +466,7 @@ export default function EvolveLab() {
     pip === "hidden" ? (
       <button
         onClick={() => setPip("small")}
-        className="mono absolute top-3 right-3 z-10 flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-sunken/90 px-3 py-1.5 text-[11px] font-semibold text-ink-2 shadow-lg backdrop-blur hover:text-ink"
+        className="mono absolute top-16 right-3 z-10 flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-sunken/90 px-3 py-1.5 text-[11px] font-semibold text-ink-2 shadow-lg backdrop-blur hover:text-ink"
       >
         <Eye size={13} /> Landed only
         <span className="text-green-400">{landedNow}</span>
@@ -454,7 +474,7 @@ export default function EvolveLab() {
       </button>
     ) : (
       <div
-        className="absolute top-3 right-3 z-10 flex flex-col overflow-hidden rounded-xl border border-line bg-sunken shadow-[0_20px_50px_-20px_rgba(0,0,0,0.85)]"
+        className="absolute top-16 right-3 z-10 flex flex-col overflow-hidden rounded-xl border border-line bg-sunken shadow-[0_20px_50px_-20px_rgba(0,0,0,0.85)]"
         style={
           pip === "large"
             ? { width: "min(620px, 58%)", height: "min(420px, 62%)" }
@@ -547,8 +567,63 @@ export default function EvolveLab() {
       ]}
       scene={
         <div className="relative h-full">
-          {scene("100%", { top: 16, bottom: 84 })}
-          {survivorView}
+          {scene("100%", { top: 64, bottom: 84 }, view === "best" ? best : undefined)}
+
+          {/* which boosters fill the screen */}
+          <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 rounded-2xl border border-white/15 bg-[#0b1119]/85 p-1 shadow-lg backdrop-blur">
+            {(
+              [
+                ["fleet", `All ${evo.population.length} boosters`],
+                ["best", "Best booster only"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setView(id)}
+                title="Press B to switch"
+                className={cx(
+                  "cursor-pointer rounded-xl px-4 py-2 text-[13px] font-semibold whitespace-nowrap transition-colors",
+                  view === id ? "bg-orange-500 text-white" : "text-slate-300 hover:bg-white/10",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {view === "best" ? (
+            hero && heroMetrics ? (
+              <div className="pointer-events-none absolute top-16 right-3 z-10 w-[240px] rounded-xl border border-white/15 bg-[#0b1119]/85 p-3 text-slate-200 shadow-lg backdrop-blur">
+                <div className="mono text-[10px] tracking-[0.14em] text-orange-300 uppercase">
+                  Best of generation {evo.generation}
+                </div>
+                <div
+                  className="mt-1 text-[15px] font-semibold"
+                  style={{ color: hero.flights[0].outcome === "landed" ? "#4ade80" : "#f87171" }}
+                >
+                  {hero.flights[0].outcome === "landed" ? "Lands" : "Crashes"}
+                  <span className="text-slate-400">
+                    {" "}
+                    at {heroMetrics.impactSpeed.toFixed(1)} m/s
+                  </span>
+                </div>
+                <div className="mono mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                  <span className="text-slate-400">ignition</span>
+                  <span className="text-right">{Math.round(heroMetrics.ignitionAltitude)} m</span>
+                  <span className="text-slate-400">engine starts</span>
+                  <span className="text-right">{heroMetrics.ignitionCount}</span>
+                  <span className="text-slate-400">burn time</span>
+                  <span className="text-right">{heroMetrics.burnTime.toFixed(1)} s</span>
+                  <span className="text-slate-400">off centre</span>
+                  <span className="text-right">{heroMetrics.missDistance.toFixed(1)} m</span>
+                  <span className="text-slate-400">fuel left</span>
+                  <span className="text-right">{Math.round(heroMetrics.fuelLeft)} kg</span>
+                </div>
+              </div>
+            ) : null
+          ) : (
+            survivorView
+          )}
         </div>
       }
       bar={
